@@ -1,32 +1,37 @@
-name: NOVA-PI P2 Firmware Build
-
-on:
-workflow_dispatch:
-push:
-branches:
-- main
-
-jobs:
-build:
-runs-on: ubuntu-latest
-
 steps:
   - name: Checkout repository
     uses: actions/checkout@v4
+
   - name: Show project files
     run: |
       pwd
       ls -la
-      find . -maxdepth 3 -name platformio.ini -print
+      find . -maxdepth 5 -name 'platformio.ini' -print
+      find . -maxdepth 4 -name '*.ino' -print
+      find . -maxdepth 4 -name '*.cpp' -print
+
   - name: Install Python
     uses: actions/setup-python@v5
     with:
       python-version: "3.12"
+
   - name: Install PlatformIO
     run: pip install platformio
+
   - name: Compile ESP32-S3 firmware
-    run: pio run -d .
+    run: |
+      if [ -f platformio.ini ]; then
+        pio run -d .
+      elif [ -f src/platformio.ini ]; then
+        pio run -d src
+      else
+        echo "ERROR: platformio.ini not found in the expected locations."
+        echo "Check the Show project files output."
+        exit 1
+      fi
+
   - name: Upload firmware
+    if: success()
     uses: actions/upload-artifact@v4
     with:
       name: NOVA-PI-P2-firmware
